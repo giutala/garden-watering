@@ -28,19 +28,78 @@
 #include "DS1307.h"
 
 DS1307 clock;//define a object of DS1307 class
+const byte numChars = 32;
+char receivedChars[numChars];
+char tempChars[numChars];        // temporary array for use when parsing
+
+      // variables to hold the parsed data
+char messageFromPC[numChars] = {0};
+int integerFromPC = 0;
+float floatFromPC = 0.0;
+
+boolean newData = false;
+
+//now the variables to store the data 
+DS1307 watering_t1; //watering time as an object of DS1307 class 
+DS1307 watering_t2; //watering time as an object of DS1307 class
+int watering_thresh =0; //percentage for humidity percentage above which watering will not be triggered
+int watering_duration =0; //how long to water it for
+int humidity_sensor = 0; //this variable will store the feedback from the humidity sensor
+
+//============
 void setup()
 {
 	Serial.begin(9600);
-	clock.begin();
+  Serial.println("Please insert the instructions for configuration of the controller.");
+  Serial.println("Enter data in this style command YYMMDD. When done, terminate the command by pressing newline \n");
+  Serial.println();
+	//clock.begin(); figure this out
 }
 void loop()
-{
-	printTime();
-  delay(2000);
+{ //store the info, is done once per setup
+  recvWithStartEndMarkers();
+  if (newData == true) {
+      strcpy(tempChars, receivedChars);
+          // this temporary copy is necessary to protect the original data
+          //   because strtok() used in parseData() replaces the commas with \0
+      parseData(); //inside here, switch case to differentiate among instructions and save the info in the variables
+      showParsedData();
+      newData = false;
+} //loop that goes on forever until power shuts off
+//every time the hour on the clock corresponds to the one to water
+//run a check on humidity and based on it trigger the water 
+//run code for running water
+//save into memory info regarding this run
+//somewhere add continous check of state pump
 }
 
-void handle_commands(){
-  
+
+//============
+
+void parseData() {      // split the data into its parts
+
+    char * strtokIndx; // this is used by strtok() as an index
+
+    strtokIndx = strtok(tempChars," ");      // get the first part - the string
+    strcpy(messageFromPC, strtokIndx); // copy it to messageFromPC
+ 
+    strtokIndx = strtok(NULL, " "); // this continues where the previous call left off
+    integerFromPC = atoi(strtokIndx);     // convert this part to an integer
+
+    strtokIndx = strtok(NULL, " ");
+    floatFromPC = atof(strtokIndx);     // convert this part to a float
+
+}
+
+//============
+
+void showParsedData() {
+    Serial.print("Message ");
+    Serial.println(messageFromPC);
+    Serial.print("Integer ");
+    Serial.println(integerFromPC);
+    Serial.print("Float ");
+    Serial.println(floatFromPC);
 }
 
 /*Function: Display time on the serial monitor*/
